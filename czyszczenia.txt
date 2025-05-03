@@ -1,0 +1,32 @@
+val sharedPref = applicationContext.getSharedPreferences("summit_prefs", Context.MODE_PRIVATE)
+sharedPref.edit {
+    remove("user_uuid")
+    remove("user_id")
+}
+
+
+
+
+        val db = AppDatabase.getDatabase(applicationContext)
+        val hikeDao = db.hikeDao()
+        val photoDao = db.photoDao()
+        CoroutineScope(Dispatchers.IO).launch {
+            hikeDao.resetAllHikesSyncedFlag()
+            photoDao.resetAllPhotosSyncedFlag()
+        }
+
+
+//    get("/api/debug/reset-db") {
+//        transaction {
+//            HikePhotoTable.deleteAll()
+//            PhotoTable.deleteAll()
+//            HikeTable.deleteAll()
+//            UserTable.deleteAll()
+//
+//            exec("DELETE FROM sqlite_sequence WHERE name='HikePhotos'")
+//            exec("DELETE FROM sqlite_sequence WHERE name='Photos'")
+//            exec("DELETE FROM sqlite_sequence WHERE name='Hikes'")
+//            exec("DELETE FROM sqlite_sequence WHERE name='Users'")
+//        }
+//        call.respondText("Database and sequences reset!")
+//    }
