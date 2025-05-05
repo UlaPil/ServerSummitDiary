@@ -2,6 +2,8 @@
 package com.example.summitdiaryserver.routes
 
 import com.example.summitdiaryserver.models.*
+import com.example.summitdiaryserver.responses.HikeWithPhotosResponse
+import com.example.summitdiaryserver.responses.PhotoResponse
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -114,5 +116,88 @@ fun Route.hikeRoutes() {
             photo_id_map = photoIdMapStr
         ))
     }
+    get("/api/hikes/{id}") {
+        val id = call.parameters["id"]?.toIntOrNull()
+        if (id == null) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+            return@get
+        }
+
+        val response = transaction {
+            val hikeRow = HikeTable.select { HikeTable.id eq id }.singleOrNull()
+            if (hikeRow == null) return@transaction null
+
+            val photos = (HikePhotoTable innerJoin PhotoTable)
+                .select { HikePhotoTable.hikeId eq id }
+                .map {
+                    PhotoResponse(
+                        id = it[PhotoTable.id].value,
+                        location = it[PhotoTable.location] ?: "",
+                        path = "/uploads/photos/${it[PhotoTable.path].substringAfterLast("/")}",
+                        userId = it[PhotoTable.userId].value
+                    )
+                }
+
+            HikeWithPhotosResponse(
+                id = hikeRow[HikeTable.id].value,
+                title = hikeRow[HikeTable.title],
+                date = hikeRow[HikeTable.date],
+                distance = hikeRow[HikeTable.distance],
+                time = hikeRow[HikeTable.time],
+                placeName = hikeRow[HikeTable.placeName],
+                placeGps = hikeRow[HikeTable.placeGps],
+                gpxPath = "/uploads/gpx/${hikeRow[HikeTable.gpxPath].substringAfterLast("/")}",
+                userId = hikeRow[HikeTable.userId].value,
+                photos = photos
+            )
+        }
+
+        if (response != null) {
+            call.respond(response)
+        } else {
+            call.respond(HttpStatusCode.NotFound, "Hike not found")
+        }
+    }
+
+    get("/api/gpx/{filename}") {
+        val filename = call.parameters["filename"]
+        if (filename.isNullOrBlank()) {
+            call.respond(HttpStatusCode.BadRequest, "Filename missing")
+            return@get
+        }
+
+        val file = File(System.getProperty("user.dir"))
+            .resolve("uploads/gpx")
+            .resolve(filename)
+
+        if (!file.exists()) {
+            call.respond(HttpStatusCode.NotFound, "File not found")
+            return@get
+        }
+
+        call.respondFile(file)
+    }
+
+    get("/api/photo/{filename}") {
+        val filename = call.parameters["filename"]
+        if (filename.isNullOrBlank()) {
+            call.respond(HttpStatusCode.BadRequest, "Filename missing")
+            return@get
+        }
+
+        val file = File(System.getProperty("user.dir"))
+            .resolve("uploads/photos")
+            .resolve(filename)
+
+        if (!file.exists()) {
+            call.respond(HttpStatusCode.NotFound, "File not found")
+            return@get
+        }
+
+        call.respondFile(file)
+    }
+
+
+
 }
 

@@ -2,11 +2,13 @@ package com.example.summitdiaryserver.routes
 
 import com.example.summitdiaryserver.models.*
 import com.example.summitdiaryserver.responses.*
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.io.File
 
 fun Route.testRoutes() {
 
@@ -32,7 +34,7 @@ fun Route.testRoutes() {
                     date = it[HikeTable.date],
                     distance = it[HikeTable.distance],
                     time = it[HikeTable.time],
-                    place = it[HikeTable.placeGps] ?: "",
+                    place = it[HikeTable.placeName] ?: "",
                     gpxPath = it[HikeTable.gpxPath],
                     userId = it[HikeTable.userId].value
                 )
@@ -66,4 +68,39 @@ fun Route.testRoutes() {
         }
         call.respond(hikePhotos)
     }
+
+    get("/api/debug/list-photos") {
+        val uploadsPath = File(System.getProperty("user.dir")).resolve("uploads/photos")
+        if (!uploadsPath.exists() || !uploadsPath.isDirectory) {
+            call.respondText("Folder NOT FOUND: ${uploadsPath.absolutePath}", status = HttpStatusCode.InternalServerError)
+            return@get
+        }
+
+        val files = uploadsPath.listFiles()
+        if (files.isNullOrEmpty()) {
+            call.respondText("Folder EMPTY: ${uploadsPath.absolutePath}", status = HttpStatusCode.OK)
+            return@get
+        }
+
+        val fileNames = files.map { it.name }
+        call.respond(fileNames)
+    }
+
+    get("/api/debug/list-gpx") {
+        val uploadsPath = File(System.getProperty("user.dir")).resolve("uploads/gpx")
+        if (!uploadsPath.exists() || !uploadsPath.isDirectory) {
+            call.respondText("Folder NOT FOUND: ${uploadsPath.absolutePath}", status = HttpStatusCode.InternalServerError)
+            return@get
+        }
+
+        val files = uploadsPath.listFiles()
+        if (files.isNullOrEmpty()) {
+            call.respondText("Folder EMPTY: ${uploadsPath.absolutePath}", status = HttpStatusCode.OK)
+            return@get
+        }
+
+        val fileNames = files.map { it.name }
+        call.respond(fileNames)
+    }
+
 }

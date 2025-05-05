@@ -9,7 +9,7 @@ data class HikeWithPhotosResponse(
     val date: String,
     val distance: Double,
     val time: String,
-    val placeId: Int,
+    val placeGps: String?,
     val placeName: String?,
     val gpxPath: String,
     val userId: Int,
